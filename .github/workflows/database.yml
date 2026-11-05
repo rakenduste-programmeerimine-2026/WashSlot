@@ -63,4 +63,9 @@ jobs:
       - name: Lint database functions
         run: supabase db lint --level error --fail-on error
       - name: Run pgTAP tests
-        run: supabase test db
+        run: |
+          if compgen -G "supabase/tests/database/*.sql" > /dev/null; then
+            supabase test db
+          else
+            echo "No pgTAP tests yet - skipping"
+          fi
