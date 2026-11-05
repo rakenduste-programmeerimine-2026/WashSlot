@@ -1,0 +1,71 @@
+name: Database & QA
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commitlint:
+    name: Commit messages (Angular)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qa/package-lock.json
+      - run: npm ci
+        working-directory: qa
+      - name: Lint commits in this PR
+        working-directory: qa
+        run: >
+          npx commitlint --config commitlint.config.mjs
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
+  pglite:
+    name: DB tests (PGlite) + typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qa
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qa/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  supabase:
+    name: DB tests (Supabase)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.0.0
+      - name: Start database (applies migrations + seed)
+        run: supabase db start
+      - name: Lint database functions
+        run: supabase db lint --level error --fail-on error
+      - name: Run pgTAP tests
+        run: |
+          if compgen -G "supabase/tests/database/*.sql" > /dev/null; then
+            supabase test db
+          else
+            echo "No pgTAP tests yet - skipping"
+          fi
