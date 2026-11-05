@@ -4,7 +4,7 @@ A web app for residents who share a laundry room. It shows which machines are fr
 
 **Problem:** Residents walk down to find every machine taken, or find their laundry pulled out because they collected it late. The paper sign-up sheet goes unused.
 
-**Scope:** live machine overview, starting a cycle, and booking a slot, for one laundry room. Admins manage machines and create residents' accounts, so there is no public signup.
+**Scope:** live machine overview, starting a cycle, and booking a slot, for one laundry room. Residents sign up and join their building with its code. Building admins manage machines.
 
 **Success criterion:** The contact and at least 3 other residents use the prototype for 2 weeks. The contact never finds all machines unexpectedly busy and collects their laundry within 10 minutes of the cycle ending.
 
@@ -28,13 +28,21 @@ You need Node.js 22 and, for local Supabase, Docker Desktop.
 
 3. Copy `.env.example` to `.env.local` and fill in those two values.
 
-4. Start the app at http://localhost:3000:
+4. Load the database tables and demo data. This wipes your local Supabase data:
+
+   ```
+   npx supabase db reset
+   ```
+
+5. Start the app at http://localhost:3000:
 
    ```
    npm run dev
    ```
 
-For a hosted Supabase project, turn off new user signups in its Auth settings. The app has no signup page, but that setting is what actually blocks signups.
+6. Sign up in the app, then join the demo building with the code `DEMO2026`.
+
+For a hosted Supabase project, turn off email confirmation in its Auth settings.
 
 ## Checks
 

@@ -1,9 +1,16 @@
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { getMyBuildingId } from "@/lib/building";
 import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
+
+async function Machines() {
+  if (!(await getMyBuildingId())) redirect("/join");
+  return <h1 className="font-bold text-2xl">Machines</h1>;
+}
 
 export default function Home() {
   return (
@@ -23,7 +30,11 @@ export default function Home() {
         </div>
       </nav>
       <div className="flex-1 w-full max-w-5xl p-5">
-        <h1 className="font-bold text-2xl">Machines</h1>
+        {hasEnvVars && (
+          <Suspense>
+            <Machines />
+          </Suspense>
+        )}
       </div>
       <footer className="w-full flex items-center justify-center border-t py-8">
         <ThemeSwitcher />
