@@ -1,1 +1,0 @@
-select email, raw_app_meta_data from auth.users;
