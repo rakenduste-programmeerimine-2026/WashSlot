@@ -1,5 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient as createTokenClient } from "@supabase/supabase-js";
+import { cookies, headers } from "next/headers";
+
+/** The `Authorization: Bearer <token>` value, if the request sent one (API clients like Postman). */
+export async function getBearerToken(): Promise<string | null> {
+  const authorization = (await headers()).get("authorization");
+  return authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
+}
 
 /**
  * Especially important if using Fluid compute: Don't put this client in a
@@ -7,6 +14,18 @@ import { cookies } from "next/headers";
  * it.
  */
 export async function createClient() {
+  const token = await getBearerToken();
+  if (token) {
+    return createTokenClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      },
+    );
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient(
