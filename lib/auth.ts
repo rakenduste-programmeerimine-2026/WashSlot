@@ -5,5 +5,7 @@ export async function getSignedIn() {
   const supabase = await createClient();
   // getClaims verifies the token; a token client has no stored session, so pass it in.
   const { data } = await supabase.auth.getClaims((await getBearerToken()) ?? undefined);
-  return data?.claims ? { supabase, userId: data.claims.sub } : null;
+  return data?.claims
+    ? { supabase, userId: data.claims.sub, email: data.claims.email as string | undefined }
+    : null;
 }
