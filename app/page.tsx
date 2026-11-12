@@ -6,10 +6,11 @@ import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import MachineBoard from "@/components/machine-board";
 
 async function Machines() {
   if (!(await getMyBuildingId())) redirect("/join");
-  return <h1 className="font-bold text-2xl">Machines</h1>;
+  return <MachineBoard />;
 }
 
 export default function Home() {
