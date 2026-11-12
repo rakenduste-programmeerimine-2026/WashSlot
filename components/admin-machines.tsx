@@ -53,7 +53,7 @@ export default function AdminMachines() {
     return (
       <div className="rounded-xl border border-zinc-800 p-8">
         <h2 className="text-xl font-semibold">Admins only</h2>
-        <p className="mt-2 text-zinc-400">Your account can't manage machines. Ask your building admin for access.</p>
+           <p className="mt-2 text-muted-foreground">Your account can&apos;t manage machines. Ask your building admin for access.</p>
       </div>
     );
   }
