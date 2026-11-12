@@ -7,10 +7,26 @@ import { POST as startCycle } from "@/app/api/cycles/route";
 import { PATCH as updateMachine } from "@/app/api/machines/[id]/route";
 import { GET as listMachines, POST as addMachine } from "@/app/api/machines/route";
 import { GET as me } from "@/app/api/me/route";
-import { DELETE as removePush, POST as savePush } from "@/app/api/push-subscriptions/route";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { execSync } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+
+// Brevo is mocked: calls to it are recorded and answered with brevoStatus; everything else hits real Supabase.
+const realFetch = globalThis.fetch;
+const brevoCalls: { url: string; method: string; body: Record<string, unknown> | null }[] = [];
+let brevoStatus = 201;
+vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+  const url = String(input instanceof Request ? input.url : input);
+  if (!url.startsWith("https://api.brevo.com/")) return realFetch(input, init);
+  brevoCalls.push({
+    url,
+    method: init?.method ?? "GET",
+    body: init?.body ? JSON.parse(String(init.body)) : null,
+  });
+  return new Response("{}", { status: brevoStatus });
+});
+process.env.BREVO_API_KEY = "test-key";
+process.env.BREVO_SENDER_EMAIL = "sender@example.com";
 
 // Route handlers read the request headers through next/headers; point it at the request being made.
 let requestHeaders = new Headers();
@@ -238,25 +254,52 @@ describe("bookings", () => {
   });
 });
 
-describe("push subscriptions", () => {
-  const subscription = {
-    endpoint: `https://push.example.com/${run}`,
-    keys: { p256dh: "test-p256dh", auth: "test-auth" },
-  };
+describe("email notifications", () => {
+  test("starting schedules an email for the finish time, releasing cancels it", async () => {
+    brevoCalls.length = 0;
+    const start = await call(startCycle, { as: "alice", body: { machineId, minutes: 30 } });
+    expect(start.status).toBe(201);
+    const cycle = start.json;
 
-  test("save twice, block another account, then remove", async () => {
-    expect((await call(savePush, { as: "alice", body: subscription })).status).toBe(201);
-    expect((await call(savePush, { as: "alice", body: subscription })).status).toBe(201);
-    expect(await call(savePush, { as: "bob", body: subscription })).toEqual({
-      status: 409,
-      json: { error: "This device is registered to another account." },
+    expect(brevoCalls).toHaveLength(1);
+    expect(brevoCalls[0]).toMatchObject({
+      url: "https://api.brevo.com/v3/smtp/email",
+      method: "POST",
+      body: {
+        to: [{ email: `it-alice-${run}@example.com` }],
+        batchId: cycle.id,
+        scheduledAt: new Date(cycle.ends_at).toISOString(),
+        subject: expect.stringContaining("is done"),
+      },
     });
-    const removed = await call(removePush, { as: "alice", body: { endpoint: subscription.endpoint } });
-    expect(removed).toEqual({ status: 200, json: null });
+
+    const release = await call(releaseCycle, { as: "alice", id: cycle.id, body: { reason: "collected" } });
+    expect(release.status).toBe(200);
+    expect(brevoCalls[1]).toMatchObject({
+      url: `https://api.brevo.com/v3/smtp/email/${cycle.id}`,
+      method: "DELETE",
+    });
   });
 
-  test("invalid subscriptions give 400", async () => {
-    const bad = { endpoint: "http://insecure", keys: { p256dh: "a", auth: "b" } };
-    expect((await call(savePush, { as: "alice", body: bad })).status).toBe(400);
+  test("a failed or rejected start sends no email", async () => {
+    brevoCalls.length = 0;
+    expect((await call(startCycle, { as: "alice", body: { machineId, minutes: 4 } })).status).toBe(400);
+    expect(brevoCalls).toHaveLength(0);
+  });
+
+  test("a Brevo failure doesn't stop the cycle starting or releasing", async () => {
+    brevoStatus = 500;
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const start = await call(startCycle, { as: "bob", body: { machineId, minutes: 30 } });
+      expect(start.status).toBe(201);
+      expect(await stateOf()).toBe("in_use");
+      const release = await call(releaseCycle, { as: "bob", id: start.json.id, body: { reason: "cancelled" } });
+      expect(release.status).toBe(200);
+      expect(error).toHaveBeenCalled();
+    } finally {
+      brevoStatus = 201;
+      error.mockRestore();
+    }
   });
 });

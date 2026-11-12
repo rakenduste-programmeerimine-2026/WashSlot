@@ -26,7 +26,7 @@ You need Node.js 22 and, for local Supabase, Docker Desktop.
    npx supabase start
    ```
 
-3. Copy `.env.example` to `.env.local` and fill in those two values.
+3. Copy `.env.example` to `.env.local` and fill in those two values. The Brevo values are optional locally. Without them, cycle-end emails are printed to the server log instead of sent.
 
 4. Load the database tables and demo data. This wipes your local Supabase data:
 
@@ -152,7 +152,7 @@ A machine can change state with no database change, for example when a cycle's f
 { "machineId": "uuid", "minutes": 30 }
 ```
 
-Leave out `minutes` to use the machine's default length. Otherwise it must be a whole number from 5 to 240. The request fails with `409` if the machine is busy, out of order, or booked by another resident. Starting during your own booking uses that booking.
+When the cycle starts, the owner is emailed at its finish time to come and collect their laundry. Leave out `minutes` to use the machine's default length. Otherwise it must be a whole number from 5 to 240. The request fails with `409` if the machine is busy, out of order, or booked by another resident. Starting during your own booking uses that booking.
 
 **`POST /api/cycles/:id/release`**: mark your own cycle collected, or cancel it. Returns the cycle.
 
@@ -160,7 +160,7 @@ Leave out `minutes` to use the machine's default length. Otherwise it must be a 
 { "reason": "collected" }
 ```
 
-`reason` is `"collected"` or `"cancelled"`. Other users' cycles return `404`.
+`reason` is `"collected"` or `"cancelled"`. Releasing cancels the pending email. Other users' cycles return `404`.
 
 ### Bookings
 
@@ -189,20 +189,6 @@ Leave out `minutes` to use the machine's default length. Otherwise it must be a 
 A booking must start in the future, at most 24 hours ahead, and last 15 minutes to 4 hours. Each resident can have 2 upcoming bookings. Overlapping slots and slots during a running cycle return `409`.
 
 **`DELETE /api/bookings/:id`**: cancel your own upcoming booking. Returns the booking.
-
-### Push subscriptions
-
-**`POST /api/push-subscriptions`**: save this device for notifications. Send `PushSubscription.toJSON()` from the browser. Saving the same device again is fine. Returns `null` with `201`.
-
-```json
-{ "endpoint": "https://...", "keys": { "p256dh": "...", "auth": "..." } }
-```
-
-**`DELETE /api/push-subscriptions`**: remove a device. Returns `null`.
-
-```json
-{ "endpoint": "https://..." }
-```
 
 ### Joining a building
 
