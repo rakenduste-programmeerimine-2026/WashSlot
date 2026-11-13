@@ -102,7 +102,7 @@ export default function MachineBoard({ userId }: { userId?: string }) {
     .sort((a, b) => Date.parse(a.estimated_finish_at!) - Date.parse(b.estimated_finish_at!))[0];
   const shown = machines.filter((m) => (kind === "all" || m.type === kind) && (!freeOnly || m.state === "free"));
   const label = (id: string) => machines.find((m) => m.machine_id === id)?.label ?? "Machine";
-  const mine = (m: Machine) => !userId || m.current_user_id === userId;
+  const mine = (m: Machine) => !!userId && m.current_user_id === userId;
   const customOk = custom === "" || isCycleMinutes(Number(custom));
   const chosenMinutes = custom === "" ? minutes : Number(custom);
 

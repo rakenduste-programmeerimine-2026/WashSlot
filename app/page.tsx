@@ -1,6 +1,7 @@
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { getSignedIn } from "@/lib/auth";
 import { getMyBuildingId } from "@/lib/building";
 import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
@@ -10,7 +11,8 @@ import MachineBoard from "@/components/machine-board";
 
 async function Machines() {
   if (!(await getMyBuildingId())) redirect("/join");
-  return <MachineBoard />;
+  const auth = await getSignedIn();
+  return <MachineBoard userId={auth?.userId} />;
 }
 
 export default function Home() {
