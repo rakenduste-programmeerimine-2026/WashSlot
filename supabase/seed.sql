@@ -7,13 +7,5 @@ on conflict (id) do nothing;
 insert into public.machines (building_id, label, type, default_cycle_minutes)
 values
   ('00000000-0000-0000-0000-0000000000b1', 'Washer 1', 'washer', 60),
-  ('00000000-0000-0000-0000-0000000000b1', 'Washer 2', 'washer', 60),
-  ('00000000-0000-0000-0000-0000000000b1', 'Washer 3', 'washer', 60),
-  ('00000000-0000-0000-0000-0000000000b1', 'Washer 4', 'washer', 45),
-  ('00000000-0000-0000-0000-0000000000b1', 'Washer 5', 'washer', 45),
-  ('00000000-0000-0000-0000-0000000000b1', 'Dryer 1', 'dryer', 50),
-  ('00000000-0000-0000-0000-0000000000b1', 'Dryer 2', 'dryer', 50),
-  ('00000000-0000-0000-0000-0000000000b1', 'Dryer 3', 'dryer', 50),
-  ('00000000-0000-0000-0000-0000000000b1', 'Dryer 4', 'dryer', 50),
-  ('00000000-0000-0000-0000-0000000000b1', 'Dryer 5', 'dryer', 50)
+  ('00000000-0000-0000-0000-0000000000b1', 'Dryer 1', 'dryer', 50)
 on conflict (building_id, label) do nothing;

@@ -15,14 +15,14 @@ describe('seed data', () => {
     await db?.close();
   });
 
-  it('creates the demo building with 5 washers and 5 dryers', async () => {
+  it('creates the demo building with 1 washer and 1 dryer', async () => {
     const { rows } = await db.query<{ join_code: string; washers: number; dryers: number }>(`
       select b.join_code,
              count(*) filter (where m.type = 'washer')::int as washers,
              count(*) filter (where m.type = 'dryer')::int as dryers
       from public.buildings b join public.machines m on m.building_id = b.id
       group by b.join_code`);
-    expect(rows).toEqual([{ join_code: 'DEMO2026', washers: 5, dryers: 5 }]);
+    expect(rows).toEqual([{ join_code: 'DEMO2026', washers: 1, dryers: 1 }]);
   });
 
   it('can be applied twice without errors', async () => {
