@@ -6,7 +6,7 @@ A web app for residents who share a laundry room. It shows which machines are fr
 
 **Scope:** live machine overview, starting a cycle, and booking a slot, for one laundry room. Residents sign up and join their building with its code. Building admins manage machines.
 
-**Success criterion:** The contact and at least 3 other residents use the prototype for 2 weeks. The contact never finds all machines unexpectedly busy and collects their laundry within 10 minutes of the cycle ending.
+**Success criterion:** The contact and at least 3 other residents use the prototype for 5 days. The contact never finds all machines unexpectedly busy and collects their laundry within 10 minutes of the cycle ending.
 
 Built with TypeScript, Next.js, Supabase and Vercel.
 
