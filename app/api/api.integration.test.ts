@@ -255,30 +255,58 @@ describe("bookings", () => {
 });
 
 describe("email notifications", () => {
-  test("starting schedules an email for the finish time, releasing cancels it", async () => {
+  const sent = (subjectPart: string) =>
+    brevoCalls.filter((c) => c.method === "POST" && String(c.body?.subject).includes(subjectPart));
+
+  async function startAsAlice() {
     brevoCalls.length = 0;
     const start = await call(startCycle, { as: "alice", body: { machineId, minutes: 30 } });
     expect(start.status).toBe(201);
-    const cycle = start.json;
+    return start.json;
+  }
 
-    expect(brevoCalls).toHaveLength(1);
-    expect(brevoCalls[0]).toMatchObject({
-      url: "https://api.brevo.com/v3/smtp/email",
-      method: "POST",
-      body: {
-        to: [{ email: `it-alice-${run}@example.com` }],
-        batchId: cycle.id,
-        scheduledAt: new Date(cycle.ends_at).toISOString(),
-        subject: expect.stringContaining("is done"),
-      },
+  test("starting sends 'started' now and schedules 'done' for the finish time", async () => {
+    const cycle = await startAsAlice();
+    expect(brevoCalls).toHaveLength(2);
+
+    const [started] = sent("started");
+    expect(started.body).toMatchObject({ to: [{ email: `it-alice-${run}@example.com` }] });
+    expect(started.body?.scheduledAt).toBeUndefined();
+
+    const [done] = sent("is done");
+    expect(done.body).toMatchObject({
+      to: [{ email: `it-alice-${run}@example.com` }],
+      batchId: cycle.id,
+      scheduledAt: new Date(cycle.ends_at).toISOString(),
     });
 
+    // Leave the machine free for the next test.
+    await call(releaseCycle, { as: "alice", id: cycle.id, body: { reason: "collected" } });
+  });
+
+  test("collecting only cancels the 'done' email", async () => {
+    const cycle = await startAsAlice();
+    brevoCalls.length = 0;
     const release = await call(releaseCycle, { as: "alice", id: cycle.id, body: { reason: "collected" } });
     expect(release.status).toBe(200);
-    expect(brevoCalls[1]).toMatchObject({
+    expect(brevoCalls).toEqual([
+      { url: `https://api.brevo.com/v3/smtp/email/${cycle.id}`, method: "DELETE", body: null },
+    ]);
+  });
+
+  test("cancelling cancels the 'done' email and sends 'cancelled'", async () => {
+    const cycle = await startAsAlice();
+    brevoCalls.length = 0;
+    const release = await call(releaseCycle, { as: "alice", id: cycle.id, body: { reason: "cancelled" } });
+    expect(release.status).toBe(200);
+    expect(brevoCalls).toHaveLength(2);
+    expect(brevoCalls[0]).toMatchObject({
       url: `https://api.brevo.com/v3/smtp/email/${cycle.id}`,
       method: "DELETE",
     });
+    const [cancelled] = sent("cancelled");
+    expect(cancelled.body).toMatchObject({ to: [{ email: `it-alice-${run}@example.com` }] });
+    expect(cancelled.body?.scheduledAt).toBeUndefined();
   });
 
   test("a failed or rejected start sends no email", async () => {
