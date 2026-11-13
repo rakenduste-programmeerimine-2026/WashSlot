@@ -1,5 +1,6 @@
 "use client";
 
+import { isCycleMinutes } from "@/lib/validation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type State = "free" | "in_use" | "awaiting_collection" | "reserved" | "out_of_order";
@@ -41,6 +42,7 @@ export default function MachineBoard({ userId }: { userId?: string }) {
   const [freeOnly, setFreeOnly] = useState(false);
   const [open, setOpen] = useState<{ id: string; mode: "start" | "book" } | null>(null);
   const [minutes, setMinutes] = useState<number | undefined>();
+  const [custom, setCustom] = useState(""); // typed minutes; overrides the preset buttons when filled
   const [slot, setSlot] = useState("");
   const [duration, setDuration] = useState(60);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -101,6 +103,8 @@ export default function MachineBoard({ userId }: { userId?: string }) {
   const shown = machines.filter((m) => (kind === "all" || m.type === kind) && (!freeOnly || m.state === "free"));
   const label = (id: string) => machines.find((m) => m.machine_id === id)?.label ?? "Machine";
   const mine = (m: Machine) => !userId || m.current_user_id === userId;
+  const customOk = custom === "" || isCycleMinutes(Number(custom));
+  const chosenMinutes = custom === "" ? minutes : Number(custom);
 
   const slots = (() => {
     const t0 = Math.ceil((Date.now() + 60000) / 1800000) * 1800000;
@@ -176,15 +180,27 @@ export default function MachineBoard({ userId }: { userId?: string }) {
                 <div className="space-y-2 rounded-lg bg-zinc-800/60 p-3">
                   <p className="text-sm">Cycle length</p>
                   <div className="flex flex-wrap gap-2">
-                    {[undefined, 30, 45, 60, 90].map((v) => (
-                      <button key={v ?? "d"} onClick={() => setMinutes(v)} aria-pressed={minutes === v}
-                        className={`rounded-md px-3 py-1.5 text-sm ${minutes === v ? "bg-white text-black" : "border border-zinc-600"}`}>
-                        {v ? `${v} min` : `Default (${m.default_cycle_minutes})`}
-                      </button>
-                    ))}
+                    {[undefined, 30, 45, 60, 90].map((v) => {
+                      const selected = custom === "" && minutes === v;
+                      return (
+                        <button key={v ?? "d"} onClick={() => { setMinutes(v); setCustom(""); }} aria-pressed={selected}
+                          className={`rounded-md px-3 py-1.5 text-sm ${selected ? "bg-white text-black" : "border border-zinc-600"}`}>
+                          {v ? `${v} min` : `Default (${m.default_cycle_minutes})`}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <button className="w-full rounded-lg bg-emerald-400 py-2 font-medium text-black"
-                    onClick={() => run("Cycle started. We'll email you when it's done.", () => api("/api/cycles", { method: "POST", body: JSON.stringify({ machineId: m.machine_id, minutes }) }))}>
+                  <label className="flex items-center gap-2 text-sm">
+                    Custom
+                    <input type="number" inputMode="numeric" min={5} max={240} step={1} placeholder="5–240"
+                      value={custom} onChange={(e) => setCustom(e.target.value)}
+                      aria-invalid={!customOk} aria-describedby={customOk ? undefined : "custom-minutes-hint"}
+                      className={`w-24 rounded-md border bg-zinc-900 p-1.5 ${customOk ? "border-zinc-600" : "border-red-400"}`} />
+                    min
+                  </label>
+                  {!customOk && <p id="custom-minutes-hint" className="text-sm text-red-400">Enter a whole number from 5 to 240 minutes.</p>}
+                  <button disabled={!customOk} className="w-full rounded-lg bg-emerald-400 py-2 font-medium text-black disabled:opacity-40"
+                    onClick={() => run("Cycle started. We'll email you when it's done.", () => api("/api/cycles", { method: "POST", body: JSON.stringify({ machineId: m.machine_id, minutes: chosenMinutes }) }))}>
                     Start cycle
                   </button>
                 </div>
@@ -212,7 +228,7 @@ export default function MachineBoard({ userId }: { userId?: string }) {
 
               <div className="mt-auto flex flex-wrap gap-2">
                 {m.state !== "out_of_order" && (m.state === "free" || m.state === "reserved") && (
-                  <button onClick={() => { setOpen(isOpen && open.mode === "start" ? null : { id: m.machine_id, mode: "start" }); setMinutes(undefined); }}
+                  <button onClick={() => { setOpen(isOpen && open.mode === "start" ? null : { id: m.machine_id, mode: "start" }); setMinutes(undefined); setCustom(""); }}
                     className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black">Start cycle</button>
                 )}
                 {m.state !== "out_of_order" && (
