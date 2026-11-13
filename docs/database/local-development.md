@@ -26,7 +26,7 @@ After `supabase start`:
 
 - API: `http://127.0.0.1:54321`, Studio: `http://127.0.0.1:54323`, Postgres: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 - Emails (sign-up confirmations) are caught by Mailpit: `http://127.0.0.1:54324`
-- Seed data: building **Demo Dormitory** with 5 washers and 5 dryers. Sign up, then join with code **`DEMO2026`**.
+- Seed data: building **Demo Dormitory** with 1 washer and 1 dryer. Sign up, then join with code **`DEMO2026`**.
 
 Frontend `.env.local`:
 
