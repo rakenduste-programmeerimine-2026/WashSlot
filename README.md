@@ -1,5 +1,7 @@
 # WashSlot
 
+** Vercel Link: https://washslot-seven.vercel.app/
+
 A web app for residents who share a laundry room. It shows which machines are free, lets residents start a timed cycle, and lets them book a slot later today.
 
 **Problem:** Residents walk down to find every machine taken, or find their laundry pulled out because they collected it late. The paper sign-up sheet goes unused.
