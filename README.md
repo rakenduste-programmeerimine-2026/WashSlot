@@ -154,7 +154,7 @@ A machine can change state with no database change, for example when a cycle's f
 { "machineId": "uuid", "minutes": 30 }
 ```
 
-The owner gets a "started" email straight away, with the finish time, and a "done" email at the finish time asking them to collect their laundry. Leave out `minutes` to use the machine's default length. Otherwise it must be a whole number from 5 to 240. The request fails with `409` if the machine is busy, out of order, or booked by another resident. Starting during your own booking uses that booking.
+The owner gets one email, at the finish time, asking them to collect their laundry. Leave out `minutes` to use the machine's default length. Otherwise it must be a whole number from 5 to 240. The request fails with `409` if the machine is busy, out of order, or booked by another resident. Starting during your own booking uses that booking.
 
 **`POST /api/cycles/:id/release`**: mark your own cycle collected, or cancel it. Returns the cycle.
 
@@ -162,7 +162,7 @@ The owner gets a "started" email straight away, with the finish time, and a "don
 { "reason": "collected" }
 ```
 
-`reason` is `"collected"` or `"cancelled"`. Either way, the pending "done" email is cancelled. Cancelling also sends a "cancelled" email, while collecting sends nothing. Other users' cycles return `404`.
+`reason` is `"collected"` or `"cancelled"`. Either way, the pending "done" email is cancelled and no other email is sent. Other users' cycles return `404`.
 
 ### Bookings
 

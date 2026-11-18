@@ -1,13 +1,10 @@
-// Cycle emails through Brevo. "finished" uses Brevo's scheduled sending, so no scheduler of our own is needed.
+// The "laundry is done" email through Brevo. It uses Brevo's scheduled sending, so no scheduler of our own is needed.
 // Without BREVO_API_KEY (local development), emails are logged instead of sent.
 
 const BREVO = "https://api.brevo.com/v3/smtp/email";
 
-export type CycleEmailKind = "started" | "cancelled" | "finished";
-
 export type CycleEmail = {
-  kind: CycleEmailKind;
-  cycleId: string; // the "finished" email's Brevo batchId, so it can be cancelled later
+  cycleId: string; // the email's Brevo batchId, so it can be cancelled later
   to: string;
   machineLabel: string;
   endsAt: string;
@@ -25,37 +22,24 @@ export function buildCycleEmail(email: CycleEmail) {
     minute: "2-digit",
   }).format(new Date(email.endsAt));
 
-  const { subject, text } = {
-    started: {
-      subject: `${label} started`,
-      text: `You started ${label}. It will finish at ${time}, and we'll email you when it's done.`,
-    },
-    cancelled: {
-      subject: `${label} cancelled`,
-      text: `Your cycle on ${label} was cancelled.`,
-    },
-    finished: {
-      subject: `Your laundry in ${label} is done`,
-      text:
-        `Your laundry in ${label} finished at ${time}. ` +
-        "Please collect it as soon as possible so the next person can use the machine.",
-    },
-  }[email.kind];
+  const subject = `Your laundry in ${label} is done`;
+  const text =
+    `Your laundry in ${label} finished at ${time}. ` +
+    "Please collect it as soon as possible so the next person can use the machine.";
   return { subject, text, html: `<p>${escapeHtml(text)}</p>` };
 }
 
-/** Sends the email now, or for "finished", schedules it for the finish time. Throws if Brevo rejects it. */
+/** Schedules the email for the finish time. Throws if Brevo rejects it. */
 export async function sendCycleEmail(email: CycleEmail): Promise<void> {
   const { subject, text, html } = buildCycleEmail(email);
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
-    console.log(`[email not sent: no BREVO_API_KEY] ${email.kind} to=${email.to} "${subject}"`);
+    console.log(`[email not sent: no BREVO_API_KEY] finished to=${email.to} "${subject}"`);
     return;
   }
 
   // Brevo only accepts a future send time; anything sooner goes out straight away.
-  const scheduled =
-    email.kind === "finished" && new Date(email.endsAt).getTime() > Date.now() + 60_000;
+  const scheduled = new Date(email.endsAt).getTime() > Date.now() + 60_000;
   const response = await fetch(BREVO, {
     method: "POST",
     headers: { "api-key": apiKey, "content-type": "application/json", accept: "application/json" },
@@ -65,7 +49,7 @@ export async function sendCycleEmail(email: CycleEmail): Promise<void> {
       subject,
       textContent: text,
       htmlContent: html,
-      ...(email.kind === "finished" && { batchId: email.cycleId }),
+      batchId: email.cycleId,
       ...(scheduled && { scheduledAt: new Date(email.endsAt).toISOString() }),
     }),
   });
