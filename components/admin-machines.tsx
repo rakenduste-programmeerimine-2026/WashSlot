@@ -15,7 +15,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-const field = "w-full rounded-md border border-zinc-600 bg-transparent p-2";
+const field = "w-full rounded-md border border-border bg-transparent p-2";
 const empty: Draft = { label: "", type: "washer", minutes: 60 };
 
 export default function AdminMachines() {
@@ -48,12 +48,12 @@ export default function AdminMachines() {
 
   const valid = (d: Draft) => d.label.trim().length >= 1 && d.label.trim().length <= 30 && Number.isInteger(d.minutes) && d.minutes >= 5 && d.minutes <= 240;
 
-  if (isAdmin === null) return <p className="py-10 text-zinc-400">Loading…</p>;
+  if (isAdmin === null) return <p className="py-10 text-muted-foreground">Loading…</p>;
   if (!isAdmin) {
     return (
-      <div className="rounded-xl border border-zinc-800 p-8">
+      <div className="rounded-xl border border-border p-8">
         <h2 className="text-xl font-semibold">Admins only</h2>
-           <p className="mt-2 text-muted-foreground">Your account can&apos;t manage machines. Ask your building admin for access.</p>
+        <p className="mt-2 text-muted-foreground">Your account can&apos;t manage machines. Ask your building admin for access.</p>
       </div>
     );
   }
@@ -62,19 +62,19 @@ export default function AdminMachines() {
     <section className="space-y-8 py-6">
       <header>
         <h1 className="text-3xl font-bold">Manage machines</h1>
-        <p className="mt-1 text-zinc-400">Add machines, rename them, or mark one as out of order.</p>
+        <p className="mt-1 text-muted-foreground">Add machines, rename them, or mark one as out of order.</p>
       </header>
 
-      <p role="status" aria-live="polite" className={`min-h-6 text-sm ${msg?.ok ? "text-emerald-300" : "text-red-400"}`}>{msg?.text}</p>
+      <p role="status" aria-live="polite" className={`min-h-6 text-sm ${msg?.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>{msg?.text}</p>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+      <div className="rounded-xl border border-border bg-muted/40 p-5">
         <h2 className="mb-3 text-lg font-semibold">Add a machine</h2>
         <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
           <label className="text-sm">Name
             <input className={field} maxLength={30} placeholder="Washer 6" value={adding.label} onChange={(e) => setAdding({ ...adding, label: e.target.value })} />
           </label>
           <label className="text-sm">Type
-            <select className={`${field} bg-zinc-900`} value={adding.type} onChange={(e) => setAdding({ ...adding, type: e.target.value as Draft["type"] })}>
+            <select className={`${field} bg-background`} value={adding.type} onChange={(e) => setAdding({ ...adding, type: e.target.value as Draft["type"] })}>
               <option value="washer">Washer</option>
               <option value="dryer">Dryer</option>
             </select>
@@ -82,7 +82,7 @@ export default function AdminMachines() {
           <label className="text-sm">Cycle (min)
             <input className={field} type="number" min={5} max={240} value={adding.minutes} onChange={(e) => setAdding({ ...adding, minutes: Number(e.target.value) })} />
           </label>
-          <button disabled={!valid(adding)} className="rounded-lg bg-white px-4 py-2 font-medium text-black disabled:opacity-40"
+          <button disabled={!valid(adding)} className="rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-40"
             onClick={async () => {
               const ok = await run(`${adding.label.trim()} added.`, () => api("/api/machines", { method: "POST", body: JSON.stringify({ label: adding.label.trim(), type: adding.type, defaultCycleMinutes: adding.minutes }) }));
               if (ok) setAdding(empty);
@@ -90,11 +90,11 @@ export default function AdminMachines() {
             Add machine
           </button>
         </div>
-        <p className="mt-2 text-xs text-zinc-400">Names are 1 to 30 characters and must be unique. Cycles are 5 to 240 minutes.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Names are 1 to 30 characters and must be unique. Cycles are 5 to 240 minutes.</p>
       </div>
 
-      <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800">
-        {machines.length === 0 && <li className="p-4 text-zinc-400">No machines yet. Add the first one above.</li>}
+      <ul className="divide-y divide-border rounded-xl border border-border">
+        {machines.length === 0 && <li className="p-4 text-muted-foreground">No machines yet. Add the first one above.</li>}
         {machines.map((m) => {
           const broken = m.state === "out_of_order";
           const editing = editId === m.machine_id;
@@ -106,7 +106,7 @@ export default function AdminMachines() {
                     <input className={field} maxLength={30} value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} />
                   </label>
                   <label className="text-sm">Type
-                    <select className={`${field} bg-zinc-900`} value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value as Draft["type"] })}>
+                    <select className={`${field} bg-background`} value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value as Draft["type"] })}>
                       <option value="washer">Washer</option>
                       <option value="dryer">Dryer</option>
                     </select>
@@ -115,7 +115,7 @@ export default function AdminMachines() {
                     <input className={field} type="number" min={5} max={240} value={draft.minutes} onChange={(e) => setDraft({ ...draft, minutes: Number(e.target.value) })} />
                   </label>
                   <div className="flex gap-2">
-                    <button disabled={!valid(draft)} className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-40"
+                    <button disabled={!valid(draft)} className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-40"
                       onClick={() => {
                         const body: Record<string, unknown> = {};
                         if (draft.label.trim() !== m.label) body.label = draft.label.trim();
@@ -124,20 +124,20 @@ export default function AdminMachines() {
                         if (Object.keys(body).length === 0) return setEditId(null);
                         run("Changes saved.", () => patch(m.machine_id, body));
                       }}>Save</button>
-                    <button className="rounded-lg border border-zinc-600 px-4 py-2 text-sm" onClick={() => setEditId(null)}>Cancel</button>
+                    <button className="rounded-lg border border-border px-4 py-2 text-sm" onClick={() => setEditId(null)}>Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold">{m.label}</p>
-                    <p className="text-sm text-zinc-400">{m.type === "washer" ? "Washer" : "Dryer"}, {m.default_cycle_minutes} min</p>
+                    <p className="text-sm text-muted-foreground">{m.type === "washer" ? "Washer" : "Dryer"}, {m.default_cycle_minutes} min</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${broken ? "bg-zinc-500/15 text-zinc-400 ring-zinc-500/30" : "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"}`}>
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${broken ? "bg-zinc-500/15 text-muted-foreground ring-zinc-500/30" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/30"}`}>
                       {broken ? "Out of order" : "In service"}
                     </span>
-                    <button className="rounded-lg border border-zinc-600 px-3 py-1.5 text-sm"
+                    <button className="rounded-lg border border-border px-3 py-1.5 text-sm"
                       onClick={() => { setEditId(m.machine_id); setDraft({ label: m.label, type: m.type, minutes: m.default_cycle_minutes }); }}>
                       Edit
                     </button>
